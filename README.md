@@ -1,19 +1,16 @@
-## Foundry
+# CkMaticDeposit Contract
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+The CkMaticDeposit contract is designed to facilitate the conversion of MATIC to ckMATIC by handling deposits of MATIC, transferring them to a designated minter address, and allowing for withdrawals under specified conditions. This contract is primarily used in a decentralized finance (DeFi) context on the Polygon blockchain.
 
-Foundry consists of:
+## Features
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- Deposit Handling: Accepts MATIC deposits to be converted into ckMATIC.
+- Minter Management: Allows the designated minter to manage MATIC and handle conversion processes.
+- Withdrawal Authorization: Permits the withdrawal of MATIC under certain conditions managed by the minter.
 
-## Documentation
+### Smart contract address
 
-https://book.getfoundry.sh/
-
-## Usage
+- [Polygon Testnet](https://amoy.polygonscan.com/address/0xb4e7369230508f76c1472f1bf2d8e7d54a6c6900)
 
 ### Build
 
