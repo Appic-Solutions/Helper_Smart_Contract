@@ -1,72 +1,110 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity 0.8.24;
+pragma solidity ^0.8.24;
+
+interface IERC20 {
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
+}
 
 /**
- * @title A helper smart contract for converting MATIC to ckMATIC.
- * @notice This contract handles the deposit of MATIC, transferring it to a designated minter address, and allows for the withdrawal under certain conditions.
+ * @title Token Locking Smart Contract
+ * @notice This contract allows users to lock their tokens, with the contract owner having the exclusive right to withdraw the locked tokens.
  */
-contract CkMaticDeposit {
-    // This is the main minter address for ckMATIC.
-    address private ckMATIC_minter_main_address;
+contract TokenLock {
+    // Address of the contract owner
+    address public owner;
 
-    // Custom errors to provide more specific revert reasons.
-    error UnlockFailed(address _user, uint256 _amount);
-    error NotMinter();
+    // Custom errors for specific revert reasons
+    error NotOwner();
+    error TransferFailed(address _user, uint256 _amount);
 
-    // Event to log MATIC deposits into the contract.
-    event ReceivedMATIC(
-        address indexed from,
-        uint256 value,
-        bytes32 indexed principal
+    // Event to log token deposits into the contract
+    event TokensLocked(
+        address user,
+        address indexed token,
+        uint256 indexed amount,
+        bytes indexed principalId
     );
 
     /**
-     * @dev Constructor sets the main minter address.
-     * @param _ckMATIC_minter_main_address The initial minter address.
+     * @dev Constructor sets the contract deployer as the owner.
      */
-    constructor(address _ckMATIC_minter_main_address) {
-        ckMATIC_minter_main_address = _ckMATIC_minter_main_address;
+    constructor() {
+        owner = msg.sender;
     }
 
     /**
-     * @dev Returns the current minter address.
-     * @return The address of the current minter.
+     * @dev Modifier to check if the caller is the owner.
      */
-    function getMinterAddress() public view returns (address) {
-        return ckMATIC_minter_main_address;
-    }
-
-    /**
-     * @dev Allows the current minter to transfer minter role to a new address.
-     * @param newAddress The new minter address.
-     */
-    function transferMinter(address newAddress) public {
-        if (msg.sender != ckMATIC_minter_main_address) {
-            revert NotMinter();
+    modifier onlyOwner() {
+        if (msg.sender != owner) {
+            revert NotOwner();
         }
-        ckMATIC_minter_main_address = newAddress;
+        _;
     }
 
     /**
-     * @dev Accepts MATIC deposits and logs the event.
-     * @param _principal Identifier for the deposit.
+     * @dev Locks the specified amount of tokens from the user.
+     * @param token The address of the token to lock.
+     * @param amount The amount of tokens to lock.
      */
-    function deposit(bytes32 _principal) public payable {
-        emit ReceivedMATIC(msg.sender, msg.value, _principal);
-    }
+    function lockTokens(
+        address token,
+        uint256 amount,
+        bytes memory principalId
+    ) external payable {
+        if (msg.value > 0) {
+            emit TokensLocked(msg.sender, address(0), msg.value, principalId);
+        } else {
+            // Interface for the ERC20 token contract
+            IERC20 tokenContract = IERC20(token);
 
-    /**
-     * @dev Allows the minter to unlock specified amount of MATIC to a user.
-     * @param user The recipient of the MATIC.
-     * @param amount The amount of MATIC to send.
-     */
-    function unlock(address payable user, uint256 amount) public {
-        if (msg.sender == ckMATIC_minter_main_address) {
-            revert NotMinter();
+            // Transfer tokens from the user to this contract
+            bool success = tokenContract.transferFrom(
+                msg.sender,
+                address(this),
+                amount
+            );
+            if (!success) {
+                revert TransferFailed(msg.sender, amount);
+            }
+
+            // Emit the TokensLocked event
+            emit TokensLocked(msg.sender, token, amount, principalId);
         }
-        (bool success, ) = user.call{value: amount}("");
-        if (!success) {
-            revert UnlockFailed(user, amount);
+    }
+
+    /**
+     * @dev withdraw the locked tokens.
+     * @param token The address of the token to withdraw.
+     * @param amount The amount of tokens to withdraw.
+     */
+    function withdrawTokens(
+        address user,
+        address token,
+        uint256 amount
+    ) external onlyOwner {
+        if (token == address(0)) {
+            (bool success, ) = user.call{value: amount}("");
+            if (!success) {
+                revert TransferFailed(owner, amount);
+            }
+        } else {
+            // Interface for the ERC20 token contract
+            IERC20 tokenContract = IERC20(token);
+
+            // Transfer tokens from this contract to the owner
+            bool success = tokenContract.transfer(user, amount);
+            if (!success) {
+                revert TransferFailed(owner, amount);
+            }
         }
     }
 }
