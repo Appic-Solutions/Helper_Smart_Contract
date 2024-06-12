@@ -21,6 +21,9 @@ interface IERC20 {
  */
 contract TokenLock is Ownable, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    address public minter;
+    mapping(address => uint256) public tokenAmount;
+    uint256 public immutable withdrawGasCost;
 
     // Custom errors for specific revert reasons
     error NotOwner();
@@ -38,8 +41,10 @@ contract TokenLock is Ownable, AccessControl {
      * @dev Constructor sets the contract deployer as the owner.
      * @dev Constructor sets the deployer as the default admin.
      */
-    constructor() Ownable(msg.sender) {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    constructor(uint256 _gasCost) Ownable(msg.sender) {
+        minter = msg.sender;
+        withdrawGasCost = _gasCost;
+        _grantRole(MINTER_ROLE, msg.sender);
     }
 
     /**
@@ -47,7 +52,8 @@ contract TokenLock is Ownable, AccessControl {
      * Can only be called by the contract owner.
      */
     function grantMinterRole(address user) public onlyOwner {
-        grantRole(MINTER_ROLE, user);
+        minter = user;
+        _grantRole(MINTER_ROLE, user);
     }
 
     /**
@@ -55,7 +61,7 @@ contract TokenLock is Ownable, AccessControl {
      * Can only be called by the contract owner.
      */
     function rovokeMinterRole(address user) public onlyOwner {
-        revokeRole(MINTER_ROLE, user);
+        _revokeRole(MINTER_ROLE, user);
     }
 
     /**
@@ -68,13 +74,17 @@ contract TokenLock is Ownable, AccessControl {
         uint256 amount,
         bytes memory principalId
     ) external payable {
-        if (msg.value > 0) {
+        if (token == address(0)) {
+            require(msg.value >= amount + withdrawGasCost, "Amount is less");
+            tokenAmount[token] = tokenAmount[token] + amount;
+            (bool success, ) = minter.call{value: withdrawGasCost}("");
+            if (!success) {
+                revert TransferFailed(minter, withdrawGasCost);
+            }
             emit TokensLocked(msg.sender, address(0), msg.value, principalId);
         } else {
-            // Interface for the ERC20 token contract
             IERC20 tokenContract = IERC20(token);
 
-            // Transfer tokens from the user to this contract
             bool success = tokenContract.transferFrom(
                 msg.sender,
                 address(this),
@@ -106,10 +116,8 @@ contract TokenLock is Ownable, AccessControl {
                 revert TransferFailed(user, amount);
             }
         } else {
-            // Interface for the ERC20 token contract
             IERC20 tokenContract = IERC20(token);
 
-            // Transfer tokens from this contract to the owner
             bool success = tokenContract.transfer(user, amount);
             if (!success) {
                 revert TransferFailed(user, amount);
