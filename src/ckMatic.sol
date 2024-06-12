@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 interface IERC20 {
     function transferFrom(
@@ -17,9 +19,8 @@ interface IERC20 {
  * @title Token Locking Smart Contract
  * @notice This contract allows users to lock their tokens, with the contract owner having the exclusive right to withdraw the locked tokens.
  */
-contract TokenLock {
-    // Address of the contract owner
-    address public owner;
+contract TokenLock is Ownable, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     // Custom errors for specific revert reasons
     error NotOwner();
@@ -35,19 +36,26 @@ contract TokenLock {
 
     /**
      * @dev Constructor sets the contract deployer as the owner.
+     * @dev Constructor sets the deployer as the default admin.
      */
-    constructor() {
-        owner = msg.sender;
+    constructor() Ownable(msg.sender) {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /**
-     * @dev Modifier to check if the caller is the owner.
+     * @dev Grants `MINTER_ROLE` to the specified user.
+     * Can only be called by the contract owner.
      */
-    modifier onlyOwner() {
-        if (msg.sender != owner) {
-            revert NotOwner();
-        }
-        _;
+    function grantMinterRole(address user) public onlyOwner {
+        grantRole(MINTER_ROLE, user);
+    }
+
+    /**
+     * @dev Revokes `MINTER_ROLE` from the specified user.
+     * Can only be called by the contract owner.
+     */
+    function rovokeMinterRole(address user) public onlyOwner {
+        revokeRole(MINTER_ROLE, user);
     }
 
     /**
@@ -90,11 +98,12 @@ contract TokenLock {
         address user,
         address token,
         uint256 amount
-    ) external onlyOwner {
+    ) external {
+        require(hasRole(MINTER_ROLE, msg.sender), "MINTER_ROLE require");
         if (token == address(0)) {
             (bool success, ) = user.call{value: amount}("");
             if (!success) {
-                revert TransferFailed(owner, amount);
+                revert TransferFailed(user, amount);
             }
         } else {
             // Interface for the ERC20 token contract
@@ -103,7 +112,7 @@ contract TokenLock {
             // Transfer tokens from this contract to the owner
             bool success = tokenContract.transfer(user, amount);
             if (!success) {
-                revert TransferFailed(owner, amount);
+                revert TransferFailed(user, amount);
             }
         }
     }
