@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.24;
+pragma solidity 0.8.18;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
@@ -84,7 +84,7 @@ contract TokenLock is Ownable, AccessControl {
             emit TokensLocked(msg.sender, address(0), msg.value, principalId);
         } else {
             IERC20 tokenContract = IERC20(token);
-
+            tokenAmount[token] = tokenAmount[token] + amount;
             bool success = tokenContract.transferFrom(
                 msg.sender,
                 address(this),
