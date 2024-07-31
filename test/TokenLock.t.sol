@@ -124,4 +124,47 @@ contract TokenLockTest is Test {
         assertEq(user.balance, amount);
         assertEq(tokenLock.tokenAmount(address(0)), 0);
     }
+
+    function testGrantMinterRoleByOwner() public {
+        // Act
+        tokenLock.grantMinterRole(minter);
+        bool hasMinterRole = tokenLock.hasRole(tokenLock.MINTER_ROLE(), minter);
+
+        // Assert
+        assertTrue(hasMinterRole);
+    }
+
+    function testGrantMinterRoleByNonOwner() public {
+        // Arrange
+        address nonOwner = address(3);
+        vm.prank(nonOwner); // Set the next call's sender to nonOwner
+
+        // Act & Assert
+        vm.expectRevert();
+        tokenLock.grantMinterRole(minter);
+    }
+
+    function testRevokeMinterRoleByOwner() public {
+        // Arrange
+        tokenLock.grantMinterRole(minter);
+        assertTrue(tokenLock.hasRole(tokenLock.MINTER_ROLE(), minter));
+
+        // Act
+        tokenLock.rovokeMinterRole(minter);
+        bool hasMinterRole = tokenLock.hasRole(tokenLock.MINTER_ROLE(), minter);
+
+        // Assert
+        assertFalse(hasMinterRole);
+    }
+
+    function testRevokeMinterRoleByNonOwner() public {
+        // Arrange
+        tokenLock.grantMinterRole(minter);
+        address nonOwner = address(3);
+        vm.prank(nonOwner); // Set the next call's sender to nonOwner
+
+        // Act & Assert
+        vm.expectRevert();
+        tokenLock.rovokeMinterRole(minter);
+    }
 }
