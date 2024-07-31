@@ -116,7 +116,7 @@ contract TokenLock is Ownable, AccessControl {
         address token,
         uint256 amount,
         uint256 fee
-    ) external payable {
+    ) public payable {
         require(hasRole(MINTER_ROLE, msg.sender), "MINTER_ROLE required");
         feeTank[user] -= fee;
         tokenAmount[token] -= amount;
@@ -148,24 +148,9 @@ contract TokenLock is Ownable, AccessControl {
         address[] calldata token,
         uint256[] calldata amount,
         uint256[] calldata fee
-    ) external {
-        require(hasRole(MINTER_ROLE, msg.sender), "MINTER_ROLE required");
+    ) external payable {
         for (uint256 i = 0; i < user.length; i++) {
-            feeTank[user[i]] -= fee[i];
-            tokenAmount[token[i]] -= amount[i];
-            if (token[i] == address(0)) {
-                (bool success, ) = user[i].call{value: amount[i]}("");
-                if (!success) {
-                    revert TransferFailed(user[i], amount[i]);
-                }
-            } else {
-                IERC20 tokenContract = IERC20(token[i]);
-
-                bool success = tokenContract.transfer(user[i], amount[i]);
-                if (!success) {
-                    revert TransferFailed(user[i], amount[i]);
-                }
-            }
+            withdrawTokens(user[i], token[i], amount[i], fee[i]);
         }
     }
 }
