@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity 0.8.18;
+pragma solidity 0.8.20;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -116,9 +116,10 @@ contract TokenLock is Ownable, AccessControl {
         address token,
         uint256 amount,
         uint256 fee
-    ) external {
+    ) external payable {
         require(hasRole(MINTER_ROLE, msg.sender), "MINTER_ROLE required");
         feeTank[user] -= fee;
+        tokenAmount[token] -= amount;
         if (token == address(0)) {
             (bool success, ) = user.call{value: amount}("");
             if (!success) {
@@ -151,6 +152,7 @@ contract TokenLock is Ownable, AccessControl {
         require(hasRole(MINTER_ROLE, msg.sender), "MINTER_ROLE required");
         for (uint256 i = 0; i < user.length; i++) {
             feeTank[user[i]] -= fee[i];
+            tokenAmount[token[i]] -= amount[i];
             if (token[i] == address(0)) {
                 (bool success, ) = user[i].call{value: amount[i]}("");
                 if (!success) {
