@@ -1,6 +1,6 @@
 # ![Technical Architecture](<Untitled Diagram.drawio.png>)
 
-# CkMaticDeposit Contract
+# icMaticDeposit Contract
 
 The CkMaticDeposit contract is designed to facilitate the conversion of MATIC to ckMATIC by handling deposits of MATIC, transferring them to a designated minter address, and allowing for withdrawals under specified conditions. This contract is primarily used in a decentralized finance (DeFi) context on the Polygon blockchain.
 
