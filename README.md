@@ -47,7 +47,7 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/DeployTokenLock.s.sol:DeployTokenLock --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast
+$ forge script --chain sepolia script/TokenLock.s.sol:DeployTokenLock --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv
 
 ```
 
