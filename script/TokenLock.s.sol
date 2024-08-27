@@ -1,21 +1,27 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
 import "forge-std/Script.sol";
 import "../src/TokenLock.sol";
 
 contract DeployTokenLock is Script {
-    function run() external {
-        // Start broadcasting transactions
-        vm.startBroadcast();
+    TokenLock public tokenLock;
 
-        // Deploy the TokenLock contract
-        TokenLock tokenLock = new TokenLock();
-
-        // Log the deployed contract address
-        console.log("TokenLock deployed at:", address(tokenLock));
-
-        // Stop broadcasting transactions
+    function run() public {
+        uint256 pk = vm.envUint("PRIVATE_KEY");
+        console.log("Deploying TokenLock contract with address", vm.addr(pk));
+        vm.startBroadcast(pk);
+        _deployTokenLock();
         vm.stopBroadcast();
+        console.log(
+            "TokenLock contract deployed at address",
+            address(tokenLock)
+        );
+    }
+
+    function _deployTokenLock() internal {
+        // Deploy the TokenLock contract
+        tokenLock = new TokenLock();
+        console.log("TokenLock contract initialized");
     }
 }
